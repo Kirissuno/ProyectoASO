@@ -1,0 +1,50 @@
+---
+ 
+- hosts: OP
+  gather_facts: no
+  
+  pre_tasks:
+
+   - name: Instalar Python
+     raw: sudo apt-get -y install python-simplejson
+
+  tasks:
+
+   - name: Instalar Git 
+     become: true
+     apt: pkg=git state=installed update_cache=true 
+     notify: Start git
+
+   - name: Creación directorio git 
+     become: true
+     file: path=/home/proyecto state=directory mode=0775
+
+   - name: Creación de usuario git
+     user:
+      name: git
+      password: "{{ 'git' | password_hash('sha512') }}"
+      groups: admin
+      update_password: on_create
+      state: present
+      shell: /bin/bash
+      home: /home/proyecto
+
+   - name: Clonar Git
+     git: repo=https://github.com/Kirissuno/Bangkok.git dest=/home/proyecto/Bangkok version=master
+     
+   - name: Iniciando git en el repositorio clonado
+     shell: /usr/bin/git init /home/proyecto/Bangkok
+     
+   - name: Cambiando propietario de la carpeta
+     file:
+       path: /home/proyecto/Bangkok
+       owner: git
+       group: git
+       mode: 0755
+       recurse: yes 
+ 
+  handlers:
+ 
+    - name: Start git 
+      service: name=git state=started
+
